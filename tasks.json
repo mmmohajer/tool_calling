@@ -1,5 +1,12 @@
 [
   {
+    "id": 1,
+    "title": "Buy groceries",
+    "description": "Milk, eggs, bread, and coffee.",
+    "status": "todo",
+    "due_date": "2026-11-05"
+  },
+  {
     "id": 2,
     "title": "Write the tutorial outline",
     "description": "List the sections for the tool-calling lesson.",
@@ -12,12 +19,5 @@
     "description": "Schedule a cleaning for next month.",
     "status": "done",
     "due_date": "2026-10-28"
-  },
-  {
-    "id": 4,
-    "title": "Go to the gym with friends",
-    "description": "Go to the gym with friends at 3 PM.",
-    "status": "todo",
-    "due_date": "2026-11-03"
   }
 ]

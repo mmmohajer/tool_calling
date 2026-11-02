@@ -12,7 +12,7 @@ The example is a todo list stored in `tasks.json`. You talk to the agent in the 
 - Update and delete need a task id. When the user describes a task in words, the model looks it up first.
 - The model can call a tool with a wrong argument. `get_todays_date` is there so "tomorrow" can be calculated from a real date instead of a guess.
 
-`sample_chat.md` is one recorded session, including a date the model got wrong and then corrected.
+One recorded session is saved in the repo. `sample_chat.md` shows each sentence together with the tool name, arguments, and result. `sample_chat.json` is the raw message list from that session. `tasks.json` is the list before the chat. `tasks.after.json` is the list after it. The program reads and writes only `tasks.json`.
 
 ## Requirements
 
@@ -90,13 +90,14 @@ Start the program from this folder. `main.py` imports `agent` and `services` fro
 
 ## Prompts to try
 
-- What tasks are still to do?
-- What day is today?
-- Add a task to review the lesson tomorrow.
-- Mark the tutorial outline as done.
-- Delete the dentist task.
+These match the tasks in `tasks.json`, so a new reader can replay the recorded session:
 
-Creating, updating, or deleting a task writes `tasks.json` immediately. Copy that file first if you want the original sample tasks back.
+- I'd like to know what tasks do you see for me?
+- I don't like to buy milk anymore, are you able to remove that task for me?
+- Can you add a new task, tomorrow I'd like to go to the gym with my friends, at 3 pm
+- What day is today?
+
+Creating, updating, or deleting a task writes `tasks.json` immediately. Copy that file first if you want the starting tasks back. The committed `tasks.json` is that starting list.
 
 ## How one turn works
 
@@ -126,7 +127,7 @@ After five searches, later requests in that same message are sent without tools,
 | --- | --- |
 | `get_todays_date` | Today's date as `YYYY-MM-DD` |
 | `create_task` | Adds a task. The id is the last task's id plus 1, or 1 when the list is empty |
-| `filter_tasks_by_text` | Tasks whose title or description matches a regular expression |
+| `filter_tasks_by_text` | Tasks whose title or description matches a regular expression. The recorded chat did not use this tool |
 | `filter_tasks_by_due_date` | Tasks due on an exact date |
 | `filter_tasks_by_status` | Tasks with status `todo`, `in_progress`, or `done` |
 | `update_task` | Changes one or more fields of a task by id |
@@ -134,9 +135,33 @@ After five searches, later requests in that same message are sent without tools,
 
 The schemas the model sees, and the functions the program runs, are both in `agent/tools.py`. `definitions` is the schema list. `by_name` maps each schema name to the function.
 
+## Recorded example
+
+The session in `sample_chat.md` and `sample_chat.json` started from the three tasks in `tasks.json`:
+
+| id | title | status | due date |
+| --- | --- | --- | --- |
+| 1 | Buy groceries | `todo` | 2026-11-05 |
+| 2 | Write the tutorial outline | `in_progress` | 2026-11-03 |
+| 3 | Call the dentist | `done` | 2026-10-28 |
+
+What the model did:
+
+1. Greeted the user with no tool call.
+2. Listed the tasks with three `filter_tasks_by_status` calls. The second model reply called `in_progress` and `done` together.
+3. Deleted id 1 when asked to remove the milk task. It reused the id from the earlier result and removed the whole groceries task. It did not call `filter_tasks_by_text`.
+4. Created the gym task as id 4 with due date `2023-11-01`. It did not check today's date first.
+5. Called `get_todays_date` when asked, and got `2026-11-02`.
+6. Admitted the date was wrong and waited for a yes.
+7. Called `update_task` for id 4 with due date `2026-11-03`.
+
+`tasks.after.json` is the file after those calls. Ids 2 and 3 are unchanged, id 1 is gone, and id 4 is the gym task due 2026-11-03. Running the program does not read `tasks.after.json`.
+
+`filter_tasks_by_text` takes a regular expression. That is a separate detail from the tool-calling loop. This saved session never reaches it, because the model already had the ids from the status filters.
+
 ## Task file
 
-`tasks.json` is the database. It is a JSON array. Each task has:
+`tasks.json` is the database the program uses. It is a JSON array. Each task has:
 
 | Field | Meaning |
 | --- | --- |
@@ -154,10 +179,12 @@ Checks for those values live in `agent/helpers.py`. A bad value is returned to t
 main.py              terminal chat
 agent/bot.py         conversation and tool-calling loop
 agent/tools.py       tool functions and schemas
-agent/helpers.py     reading, writing, and checking tasks
+agent/helpers.py     task checks, assistant messages, and tool execution
 services/llm.py      OpenAI client
-tasks.json           task store
-sample_chat.md       one example session
+tasks.json           task store the program reads and writes
+tasks.after.json     tasks.json after the recorded chat
+sample_chat.md       that chat, with each call and result
+sample_chat.json     the raw messages from that chat
 .env.sample          environment template
 requirements.txt     python-dotenv and openai==1.82.1
 ```
@@ -180,4 +207,4 @@ The virtual environment is not active, or the requirements were not installed in
 
 **The agent changed a task you wanted to keep**
 
-Restore `tasks.json` from the copy you made before the chat, or from git if that copy is committed.
+Replace `tasks.json` with the committed starting file. `tasks.after.json` is the ending list from the recorded chat, not a second database.
