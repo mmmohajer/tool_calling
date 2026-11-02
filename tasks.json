@@ -1,0 +1,23 @@
+[
+  {
+    "id": 2,
+    "title": "Write the tutorial outline",
+    "description": "List the sections for the tool-calling lesson.",
+    "status": "in_progress",
+    "due_date": "2026-11-03"
+  },
+  {
+    "id": 3,
+    "title": "Call the dentist",
+    "description": "Schedule a cleaning for next month.",
+    "status": "done",
+    "due_date": "2026-10-28"
+  },
+  {
+    "id": 4,
+    "title": "Go to the gym with friends",
+    "description": "Go to the gym with friends at 3 PM.",
+    "status": "todo",
+    "due_date": "2026-11-03"
+  }
+]
