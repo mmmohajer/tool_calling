@@ -1,6 +1,5 @@
-import json
-
-from agent.tools import by_name, definitions
+from agent.helpers import assistant_message, call_tool
+from agent.tools import definitions
 from services.llm import Llm
 
 
@@ -46,7 +45,7 @@ class Bot:
                 self._turns.append(final)
                 return reply
 
-            assistant = _assistant_message(message)
+            assistant = assistant_message(message)
             messages.append(assistant)
             self._turns.append(assistant)
             for call in message.tool_calls:
@@ -59,9 +58,9 @@ class Bot:
                             "Ask the user to clarify."
                         )
                     else:
-                        content = _call_tool(call)
+                        content = call_tool(call)
                 else:
-                    content = _call_tool(call)
+                    content = call_tool(call)
                 tool_message = {
                     "role": "tool",
                     "tool_call_id": call.id,
@@ -71,31 +70,3 @@ class Bot:
                 self._turns.append(tool_message)
 
         raise ValueError("tool calls did not finish")
-
-
-def _assistant_message(message) -> dict:
-    payload = {"role": "assistant", "content": message.content}
-    if message.tool_calls:
-        payload["tool_calls"] = [
-            {
-                "id": call.id,
-                "type": "function",
-                "function": {
-                    "name": call.function.name,
-                    "arguments": call.function.arguments,
-                },
-            }
-            for call in message.tool_calls
-        ]
-    return payload
-
-
-def _call_tool(call) -> str:
-    try:
-        arguments = json.loads(call.function.arguments or "{}")
-        if not isinstance(arguments, dict):
-            raise ValueError("tool arguments must be an object")
-        result = by_name[call.function.name](**arguments)
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
-        return str(exc)
-    return json.dumps(result)

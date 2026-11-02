@@ -66,3 +66,33 @@ def require_task_id(value: int, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{name} must be an integer")
     return value
+
+
+def assistant_message(message) -> dict:
+    payload = {"role": "assistant", "content": message.content}
+    if message.tool_calls:
+        payload["tool_calls"] = [
+            {
+                "id": call.id,
+                "type": "function",
+                "function": {
+                    "name": call.function.name,
+                    "arguments": call.function.arguments,
+                },
+            }
+            for call in message.tool_calls
+        ]
+    return payload
+
+
+def call_tool(call) -> str:
+    from agent.tools import by_name
+
+    try:
+        arguments = json.loads(call.function.arguments or "{}")
+        if not isinstance(arguments, dict):
+            raise ValueError("tool arguments must be an object")
+        result = by_name[call.function.name](**arguments)
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return str(exc)
+    return json.dumps(result)
